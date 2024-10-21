@@ -17,6 +17,7 @@ public class NPCScriptable : ScriptableObject
     public NPCState aiState;
     public float detectDistance;
     public float safeDistance;
+    public float interactDistance;
 
     [Header("Wandering")]
     public float minWanderDistance;

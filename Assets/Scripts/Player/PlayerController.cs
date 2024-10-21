@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.InputSystem;
+using static UnityEngine.GraphicsBuffer;
 
 public class PlayerController : MonoBehaviour
 {
@@ -22,6 +23,7 @@ public class PlayerController : MonoBehaviour
     private Transform _Enemy;
     private float _CurAttackCoolTime;
     private bool _AttackCooled;
+    private bool _Interacting;
 
     public static PlayerController instance;
 
@@ -45,6 +47,7 @@ public class PlayerController : MonoBehaviour
         if (context.phase == InputActionPhase.Performed)
         {
             _Attacking = false;
+            _Interacting = false;
             playerAnimator.SetBool("Attacking", false);
             Ray ray = playerCam.ScreenPointToRay(Input.mousePosition);
             RaycastHit hit;
@@ -96,7 +99,7 @@ public class PlayerController : MonoBehaviour
 
             if (Physics.Raycast(ray, out hit, 100f))
             {
-                if(hit.collider.CompareTag("Enemy"))
+                if (hit.collider.CompareTag("Enemy"))
                 {
                     _Enemy = hit.collider.gameObject.transform;
                     Vector3 target = _Enemy.transform.position;
@@ -105,6 +108,36 @@ public class PlayerController : MonoBehaviour
                     playerAgent.SetDestination(target);
                     _Attacking = true;
                 }
+                else if (hit.collider.CompareTag("NPC"))
+                {
+                    _Enemy = hit.collider.gameObject.transform;
+                    Vector3 target = _Enemy.transform.position;
+
+                    playerAgent.stoppingDistance = attackOffset;
+                    playerAgent.SetDestination(target);
+                    _Interacting = true;
+                }
+            }
+        }
+    }
+
+    private void Interacting()
+    {
+        if(_Enemy != null)
+        {
+
+            if (_Interacting)
+            {
+                Vector3 target = _Enemy.transform.position;
+
+                if (_Enemy.GetComponent<NPCController>().NPCData.interactDistance > Vector3.Distance(transform.position, target))
+                {
+                    _Enemy.GetComponent<NPCController>().anim.SetBool("Interacted", true);
+                }
+            }
+            else
+            {
+                _Enemy.GetComponent<NPCController>().anim.SetBool("Interacted", false);
             }
         }
     }
@@ -164,6 +197,7 @@ public class PlayerController : MonoBehaviour
         UpdateAnimator();
         Locomotion();
         Combat();
+        Interacting();
 
         if(!_AttackCooled)
         {

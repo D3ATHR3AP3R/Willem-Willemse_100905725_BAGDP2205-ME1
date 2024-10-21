@@ -27,7 +27,15 @@ public class NPCController : MonoBehaviour
 
     void Start()
     {
-        SetState(NPCState.Wandering);
+        if(NPCData.aiType != NPCType.Interactive)
+        {
+            SetState(NPCState.Wandering);
+        }
+        else
+        {
+            SetState(NPCState.Idle);
+            anim.SetBool("Interactable", true);
+        }
         _CurHealth = NPCData.maxHealth;
         _Dead = false;
         //anim.runtimeAnimatorController = idleControl;
@@ -35,11 +43,11 @@ public class NPCController : MonoBehaviour
 
     void Update()
     {
-        //playerDistance = Vector3.Distance(model.transform.position, player.transform.position);
+        NPCData.playerDistance = Vector3.Distance(model.transform.position, player.transform.position);
 
         //NPCData.anim.SetBool("Moving", NPCData.aiState != NPCState.Idle);
 
-        if (!_Dead)
+        if (!_Dead || NPCData.aiType != NPCType.Interactive)
         {
             switch (NPCData.aiState)
             {
@@ -55,6 +63,10 @@ public class NPCController : MonoBehaviour
             }
 
             UpdateAnimator();
+        }
+        else if(NPCData.aiType == NPCType.Interactive)
+        {
+            return;
         }
     }
 

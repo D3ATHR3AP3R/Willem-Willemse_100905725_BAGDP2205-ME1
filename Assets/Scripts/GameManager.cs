@@ -62,7 +62,8 @@ public enum NPCType
 {
     Passive,
     Frightful,
-    Aggressive
+    Aggressive,
+    Interactive
 }
 
 public enum NPCState

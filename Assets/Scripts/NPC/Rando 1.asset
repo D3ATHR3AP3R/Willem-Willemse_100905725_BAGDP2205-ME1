@@ -19,9 +19,10 @@ MonoBehaviour:
   aiState: 0
   detectDistance: 2
   safeDistance: 2
+  interactDistance: 2
   minWanderDistance: 2
   maxWanderDistance: 15
   minWanderWaitTime: 3
   maxWanderWaitTime: 6
   wanderingWait: 0
-  playerDistance: 2
+  playerDistance: 9.088412
