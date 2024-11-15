@@ -26,12 +26,11 @@ public class NPCScriptable : ScriptableObject
     public float maxWanderWaitTime;
     public float wanderingWait;
 
-    /*[Header("Combat")]
+    [Header("Combat")]
     public int damage;
     public float attackRate;
     public float lastAttackTime;
-    public float detectDistance;
-    public float attackDistance;*/
+    public float attackDistance;
 
     public float playerDistance;
 }

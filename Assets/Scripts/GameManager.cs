@@ -70,5 +70,6 @@ public enum NPCState
 {
     Idle,
     Wandering,
-    Fleeing
+    Fleeing,
+    Attacking
 }

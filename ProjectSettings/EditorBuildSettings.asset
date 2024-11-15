@@ -9,6 +9,11 @@ EditorBuildSettings:
     path: Assets/Scenes/MainMenu.unity
     guid: 99c9720ab356a0642a771bea13969a05
   - enabled: 1
+    path: Assets/Scenes/TechTest.unity
+    guid: 76e126759ca0e9a4195cc687908b9535
+  - enabled: 0
     path: Assets/Scenes/PrototypeArea.unity
     guid: 248acbdc56a998d47b8b310cf5bc78e1
-  m_configObjects: {}
+  m_configObjects:
+    com.unity.addressableassets: {fileID: 11400000, guid: 5cc99a30ad3b12d49adfd2942c38f6aa,
+      type: 2}

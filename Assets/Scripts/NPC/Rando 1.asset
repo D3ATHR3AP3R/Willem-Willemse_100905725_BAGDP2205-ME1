@@ -25,4 +25,4 @@ MonoBehaviour:
   minWanderWaitTime: 3
   maxWanderWaitTime: 6
   wanderingWait: 0
-  playerDistance: 9.088412
+  playerDistance: 25.874477

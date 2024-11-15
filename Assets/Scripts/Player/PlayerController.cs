@@ -1,10 +1,11 @@
+using Cinemachine;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.InputSystem;
-using static UnityEngine.GraphicsBuffer;
+using UnityEngine.SceneManagement;
 
 public class PlayerController : MonoBehaviour
 {
@@ -14,6 +15,8 @@ public class PlayerController : MonoBehaviour
     public Camera playerCam;
     public Animator playerAnimator;
 
+    public CinemachineBrain _PlayerBrain;
+
     public float attackOffset;
 
     private bool _OnMoveInputPressed;
@@ -21,11 +24,23 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float _AttackTime;
     [SerializeField] private float _AttackDamage;
     private Transform _Enemy;
+    private Transform _InteractionObj;
     private float _CurAttackCoolTime;
     private bool _AttackCooled;
-    private bool _Interacting;
+    private bool _InteractingEnem;
+    private bool _ObjInteracting;
+
+    private Vector3 _CamPos;
+    private Quaternion _CamRot;
 
     public static PlayerController instance;
+    [SerializeField] private float _MaxHealth = 100;
+    private float _CurHealth;
+
+    [SerializeField] private GameObject _HitParticle;
+    [SerializeField] private GameObject _HitParticleSpawnPoint;
+
+    [SerializeField] AudioSource _AudioSource;
 
     private void Awake()
     {
@@ -40,6 +55,15 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    private void Start()
+    {
+        _CamPos = new Vector3(playerCam.transform.localPosition.x, playerCam.transform.localPosition.y, playerCam.gameObject.transform.localPosition.z);
+        _CamRot = new Quaternion(playerCam.transform.localRotation.x, playerCam.transform.localRotation.y, playerCam.transform.localRotation.z, playerCam.transform.localRotation.w);
+        
+        _PlayerBrain.enabled = false;
+        _CurHealth = _MaxHealth;
+    }
+
     public void onMoveInput(InputAction.CallbackContext context)
     {
         onMoveInputHold(context);
@@ -47,7 +71,11 @@ public class PlayerController : MonoBehaviour
         if (context.phase == InputActionPhase.Performed)
         {
             _Attacking = false;
-            _Interacting = false;
+            _InteractingEnem = false;
+            _Enemy = null;
+            _ObjInteracting = false;
+            _InteractionObj = null;
+
             playerAnimator.SetBool("Attacking", false);
             Ray ray = playerCam.ScreenPointToRay(Input.mousePosition);
             RaycastHit hit;
@@ -115,7 +143,16 @@ public class PlayerController : MonoBehaviour
 
                     playerAgent.stoppingDistance = attackOffset;
                     playerAgent.SetDestination(target);
-                    _Interacting = true;
+                    _InteractingEnem = true;
+                }
+                else if(hit.collider.CompareTag("InteractionObj"))
+                {
+                    _InteractionObj = hit.collider.gameObject.transform;
+                    Vector3 target = _InteractionObj.transform.position;
+
+                    playerAgent.stoppingDistance = attackOffset;
+                    playerAgent.SetDestination(target);
+                    _ObjInteracting = true;
                 }
             }
         }
@@ -126,7 +163,7 @@ public class PlayerController : MonoBehaviour
         if(_Enemy != null)
         {
 
-            if (_Interacting)
+            if (_InteractingEnem)
             {
                 Vector3 target = _Enemy.transform.position;
 
@@ -138,6 +175,22 @@ public class PlayerController : MonoBehaviour
             else
             {
                 _Enemy.GetComponent<NPCController>().anim.SetBool("Interacted", false);
+            }
+        }
+    }
+
+    private void ObjectInteraction()
+    {
+        if(_InteractionObj != null)
+        {
+            if(_ObjInteracting)
+            {
+                if(Vector3.Distance(transform.position, _InteractionObj.transform.position) <= 0.75f)
+                {
+                    _InteractionObj.GetComponent<InteractionBase>().Interact();
+                    _InteractionObj = null;
+                    _ObjInteracting = false;
+                }
             }
         }
     }
@@ -180,7 +233,7 @@ public class PlayerController : MonoBehaviour
         if(_Enemy != null)
         {
             _Enemy.gameObject.GetComponent<NPCController>().TakeDamage(_AttackDamage);
-            Debug.Log(_Enemy.name);
+            _AudioSource.Play();
         }
     }
 
@@ -188,7 +241,12 @@ public class PlayerController : MonoBehaviour
     {
         _Attacking = false;
         playerAnimator.SetBool("Attacking", false);
+
+        Debug.Log("Enemy Killed");
+
+
         _Enemy = null;
+
     }
 
     // Update is called once per frame
@@ -198,6 +256,7 @@ public class PlayerController : MonoBehaviour
         Locomotion();
         Combat();
         Interacting();
+        ObjectInteraction();
 
         if(!_AttackCooled)
         {
@@ -214,5 +273,37 @@ public class PlayerController : MonoBehaviour
         float speed = localVelocity.z;
 
         playerAnimator.SetFloat("ForwardSpeed", speed);
+    }
+
+    public void CamResetTrigger()
+    {
+        StartCoroutine(CameraPosReset());
+    }
+
+    IEnumerator CameraPosReset()
+    {
+        Debug.Log("Camera Rest Called");
+        yield return new WaitForSeconds(1f);
+        Debug.Log("Camera Reset Triggered");
+        playerCam.gameObject.transform.localPosition = _CamPos;
+        playerCam.gameObject.transform.localRotation = _CamRot;
+    }
+
+    public void TakeDamage(float damage)
+    {
+        _CurHealth -= damage;
+        Destroy(Instantiate(_HitParticle, _HitParticleSpawnPoint.transform.position, transform.rotation), 1.0f);
+
+        if (_CurHealth <= 0)
+        {
+            playerAnimator.SetBool("Dead", true);
+            ReloadScene();
+        }
+    }
+
+    private IEnumerator ReloadScene()
+    {
+        yield return new WaitForSeconds(1.5f);
+        SceneManager.LoadScene(1);
     }
 }

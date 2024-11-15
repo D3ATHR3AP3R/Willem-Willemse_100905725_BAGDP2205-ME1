@@ -1,7 +1,10 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.Events;
+using Random = UnityEngine.Random;
 
 public class NPCController : MonoBehaviour
 {
@@ -14,12 +17,17 @@ public class NPCController : MonoBehaviour
     public GameObject modelPrefab;
 
     public Transform centerPoint;
+    public CharacterEffectsSMR characterEffectsSMR;
 
     [SerializeField] private float _MaxWanderDistance;
     [SerializeField] private GameObject _HitParticle;
     [SerializeField] private Transform _HitParticleSpawnPoint;
 
+    [SerializeField] AudioSource _AudioSource;
+
     private float _CurHealth;
+    private float _PlayerDistance;
+    private float _LastAttackTime;
     private bool _Dead;
 
     //public RuntimeAnimatorController idleControl;
@@ -43,7 +51,12 @@ public class NPCController : MonoBehaviour
 
     void Update()
     {
-        NPCData.playerDistance = Vector3.Distance(model.transform.position, player.transform.position);
+        _PlayerDistance = Vector3.Distance(model.transform.position, player.transform.position);
+
+        if(_PlayerDistance > NPCData.detectDistance && NPCData.aiType != NPCType.Interactive)
+        {
+            SetState(NPCState.Wandering);
+        }
 
         //NPCData.anim.SetBool("Moving", NPCData.aiState != NPCState.Idle);
 
@@ -53,7 +66,7 @@ public class NPCController : MonoBehaviour
             {
                 case NPCState.Idle: PassiveUpdate(); break;
                 case NPCState.Wandering: PassiveUpdate(); break;
-                //case NPCState.Attacking: AttackingUpdate(); break;
+                case NPCState.Attacking: AttackingUpdate(); break;
                 case NPCState.Fleeing: FleeingUpdate(); break;
             }
 
@@ -79,9 +92,9 @@ public class NPCController : MonoBehaviour
             Invoke("WanderToNewLocation", Random.Range(NPCData.minWanderWaitTime, NPCData.maxWanderWaitTime));
         }
 
-        if (NPCData.aiType == NPCType.Aggressive && NPCData.playerDistance < NPCData.detectDistance)
+        if (NPCData.aiType == NPCType.Aggressive && _PlayerDistance < NPCData.detectDistance)
         {
-            //SetState(NPCState.Attacking);
+            SetState(NPCState.Attacking);
             return;
         }
         else if (NPCData.aiType == NPCType.Frightful && NPCData.playerDistance < NPCData.detectDistance)
@@ -91,25 +104,25 @@ public class NPCController : MonoBehaviour
         }
     }
 
-    /*void AttackingUpdate()
+    void AttackingUpdate()
     {
-        if (playerDistance > attackDistance)
+        if (_PlayerDistance > NPCData.attackDistance)
         {
             agent.isStopped = false;
             agent.SetDestination(PlayerController.instance.transform.position);
+            anim.SetBool("Attacking", false);
         }
         else
         {
             agent.isStopped = true;
 
-            if (Time.time - lastAttackTime > attackRate)
+            if (Time.time - _LastAttackTime > NPCData.attackRate)
             {
-                lastAttackTime = Time.time;
-                PlayerController.instance.GetComponent<Idamagable>().takeDamage(damage);
-                anim.SetTrigger("Attack");
+                _LastAttackTime = Time.time;
+                anim.SetBool("Attacking", true);
             }
         }
-    }*/
+    }
 
     void FleeingUpdate()
     {
@@ -141,12 +154,12 @@ public class NPCController : MonoBehaviour
                     agent.isStopped = false;
                     break;
                 }
-            /*case NPCState.Attacking:
+            case NPCState.Attacking:
                 {
-                    agent.speed = runSpeed;
+                    agent.speed = NPCData.runSpeed;
                     agent.isStopped = false;
                     break;
-                }*/
+                }
             case NPCState.Fleeing:
                 {
                     agent.speed = NPCData.runSpeed;
@@ -226,7 +239,15 @@ public class NPCController : MonoBehaviour
     private void NPCDead()
     {
         _Dead = true;
-        Destroy(gameObject, 3f);
+        PlayerController.instance.OnEnemyDeath();
+        characterEffectsSMR.OnDeath();
+        Destroy(this.gameObject, 1f);
+    }
+
+    public void OnAttackHit()
+    {
+        PlayerController.instance.TakeDamage(NPCData.damage);
+        _AudioSource.Play();
     }
 
     public void TakeDamage(float damage)
@@ -236,7 +257,6 @@ public class NPCController : MonoBehaviour
 
         if (_CurHealth <= 0)
         {
-            PlayerController.instance.OnEnemyDeath();
             anim.SetBool("Dead", true);
             NPCDead();
         }

@@ -7,17 +7,20 @@ TagManager:
   - NPCZone
   - Enemy
   - NPC
+  - Collide
+  - Ground
+  - InteractionObj
   layers:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - 
+  - Camera
   - Water
   - UI
   - Ground
   - NPC
-  - 
-  - 
+  - Event
+  - Player
   - 
   - 
   - 
